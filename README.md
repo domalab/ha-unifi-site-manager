@@ -85,6 +85,7 @@ Force an immediate refresh of the integration data.
 ## API Rate Limiting
 
 The UniFi Site Manager API has a rate limit of 100 requests per minute. The integration handles this automatically by:
+
 - Tracking remaining API calls
 - Implementing backoff when limits are reached
 - Efficiently batching requests where possible
