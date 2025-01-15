@@ -1,0 +1,84 @@
+{
+    "entity": {
+        "sensor": {
+            "download_speed": {
+                "name": "Download Speed",
+                "state_attributes": {
+                    "isp_name": "ISP Name",
+                    "download_speed": "Raw Download Speed (kbps)",
+                    "upload_speed": "Raw Upload Speed (kbps)"
+                }
+            },
+            "upload_speed": {
+                "name": "Upload Speed"
+            },
+            "latency_average": {
+                "name": "Average Latency"
+            },
+            "latency_max": {
+                "name": "Maximum Latency"
+            },
+            "packet_loss": {
+                "name": "Packet Loss"
+            },
+            "uptime": {
+                "name": "WAN Uptime"
+            },
+            "total_devices": {
+                "name": "Total Devices"
+            }
+        },
+        "binary_sensor": {
+            "site_online": {
+                "name": "Site Online",
+                "state": {
+                    "on": "Online",
+                    "off": "Offline"
+                }
+            },
+            "devices_all_online": {
+                "name": "All Devices Online",
+                "state": {
+                    "on": "Yes",
+                    "off": "No"
+                }
+            },
+            "updates_available": {
+                "name": "Updates Available",
+                "state": {
+                    "on": "Available",
+                    "off": "Up to date"
+                }
+            },
+            "host_online": {
+                "name": "Host Connection",
+                "state": {
+                    "on": "Connected",
+                    "off": "Disconnected"
+                }
+            },
+            "network_active": {
+                "name": "Network Controller",
+                "state": {
+                    "on": "Active",
+                    "off": "Inactive"
+                }
+            },
+            "protect_active": {
+                "name": "Protect Controller",
+                "state": {
+                    "on": "Active",
+                    "off": "Inactive"
+                }
+            }
+        }
+    },
+    "entity_component": {
+        "binary_sensor": {
+            "state": {
+                "on": "Yes",
+                "off": "No"
+            }
+        }
+    }
+}
