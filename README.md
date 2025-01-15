@@ -106,14 +106,14 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ---
 
-[releases-shield]: https://img.shields.io/github/release/ruaandeysel/ha-unifi-site-manager.svg?style=for-the-badge
-[releases]: https://github.com/ruaandeysel/ha-unifi-site-manager/releases
-[commits-shield]: https://img.shields.io/github/commit-activity/y/ruaandeysel/ha-unifi-site-manager.svg?style=for-the-badge
-[commits]: https://github.com/ruaandeysel/ha-unifi-site-manager/commits/main
+[releases-shield]: https://img.shields.io/github/release/domalab/ha-unifi-site-manager.svg?style=for-the-badge
+[releases]: https://github.com/domalab/ha-unifi-site-manager/releases
+[commits-shield]: https://img.shields.io/github/commit-activity/y/domalab/ha-unifi-site-manager.svg?style=for-the-badge
+[commits]: https://github.com/domalab/ha-unifi-site-manager/commits/main
 [hacs]: https://github.com/hacs/integration
 [hacsbadge]: https://img.shields.io/badge/HACS-Default-orange.svg?style=for-the-badge
-[license-shield]: https://img.shields.io/github/license/ruaandeysel/ha-unifi-site-manager.svg?style=for-the-badge
-[maintenance-shield]: https://img.shields.io/badge/maintainer-%40ruaandeysel-blue.svg?style=for-the-badge
-[user_profile]: https://github.com/ruaandeysel
-[buymecoffee]: https://www.buymeacoffee.com/ruaandeysel
+[license-shield]: https://img.shields.io/github/license/domalab/ha-unifi-site-manager.svg?style=for-the-badge
+[maintenance-shield]: https://img.shields.io/badge/maintainer-%40domalab-blue.svg?style=for-the-badge
+[user_profile]: https://github.com/domalab
+[buymecoffee]: https://www.buymeacoffee.com/domalab
 [buymecoffeebadge]: https://img.shields.io/badge/buy%20me%20a%20coffee-donate-yellow.svg?style=for-the-badge
