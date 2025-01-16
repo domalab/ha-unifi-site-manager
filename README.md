@@ -1,12 +1,8 @@
 # UniFi Site Manager Integration for Home Assistant
 
-[![GitHub Release][releases-shield]][releases]
-[![GitHub Activity][commits-shield]][commits]
-[![License][license-shield]](LICENSE)
-
-[![hacs][hacsbadge]][hacs]
-[![Project Maintenance][maintenance-shield]][user_profile]
-[![BuyMeCoffee][buymecoffeebadge]][buymecoffee]
+[![HACS Integration][hacsbadge]][hacs]
+[![GitHub Last Commit](https://img.shields.io/github/last-commit/domalab/ha-unifi-site-manager?style=for-the-badge)](https://github.com/domalab/ha-unifi-site-manager/commits/main)
+[![License](https://img.shields.io/github/license/domalab/ha-unifi-site-manager?style=for-the-badge)](./LICENSE)
 
 A Home Assistant integration for UniFi's Site Manager API, providing comprehensive monitoring of UniFi sites, hosts, and network performance metrics.
 
@@ -102,14 +98,5 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ---
 
-[releases-shield]: https://img.shields.io/github/release/domalab/ha-unifi-site-manager.svg?style=for-the-badge
-[releases]: https://github.com/domalab/ha-unifi-site-manager/releases
-[commits-shield]: https://img.shields.io/github/commit-activity/y/domalab/ha-unifi-site-manager.svg?style=for-the-badge
-[commits]: https://github.com/domalab/ha-unifi-site-manager/commits/main
-[hacs]: https://github.com/hacs/integration
+[hacs]: https://github.com/custom-components/hacs
 [hacsbadge]: https://img.shields.io/badge/HACS-Default-orange.svg?style=for-the-badge
-[license-shield]: https://img.shields.io/github/license/domalab/ha-unifi-site-manager.svg?style=for-the-badge
-[maintenance-shield]: https://img.shields.io/badge/maintainer-%40domalab-blue.svg?style=for-the-badge
-[user_profile]: https://github.com/domalab
-[buymecoffee]: https://www.buymeacoffee.com/domalab
-[buymecoffeebadge]: https://img.shields.io/badge/buy%20me%20a%20coffee-donate-yellow.svg?style=for-the-badge
