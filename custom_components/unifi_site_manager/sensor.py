@@ -1,6 +1,7 @@
 """Support for UniFi Site Manager sensors."""
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime
@@ -44,6 +45,7 @@ from .const import (
 )
 from .entity import UnifiSiteManagerSiteEntity
 
+_LOGGER = logging.getLogger(__name__)
 
 @dataclass(frozen=True, kw_only=True)
 class UnifiSensorEntityDescription(SensorEntityDescription):
@@ -123,21 +125,47 @@ async def async_setup_entry(
 ) -> None:
     """Set up the UniFi Site Manager sensors."""
     coordinator = hass.data[DOMAIN][config_entry.entry_id]
-
+    
+    _LOGGER.debug("Setting up sensors with sites data: %s", coordinator.data["sites"])
+    
     entities: list[UnifiSiteManagerSensor] = []
 
     # Add site-level sensors
     for site_id, site_data in coordinator.data["sites"].items():
+        # Check if site has metrics
+        site_metrics = coordinator.get_site_metrics(site_id)
+        _LOGGER.debug("Site %s metrics: %s", site_id, site_metrics)
+        
+        if not site_metrics or not isinstance(site_metrics, list) or not site_metrics:
+            _LOGGER.debug("No valid metrics found for site %s", site_id)
+            continue
+            
+        # Verify data structure
+        metric_set = site_metrics[0]
+        if not metric_set.get("periods"):
+            _LOGGER.debug("No periods found in metrics for site %s", site_id)
+            continue
+            
+        periods = metric_set["periods"]
+        if not periods:
+            _LOGGER.debug("Empty periods list for site %s", site_id)
+            continue
+            
+        latest_data = periods[0].get("data", {})
+        if not latest_data.get("wan"):
+            _LOGGER.debug("No WAN data found for site %s", site_id)
+            continue
+
+        # Create sensors since we have valid data
         for description in SITE_SENSORS:
-            site_metrics = coordinator.get_site_metrics(site_id)
-            if site_metrics and site_metrics[0].get("data"):
-                entities.append(
-                    UnifiSiteManagerSensor(
-                        coordinator=coordinator,
-                        description=description,
-                        site_id=site_id,
-                    )
+            _LOGGER.debug("Creating sensor %s for site %s", description.key, site_id)
+            entities.append(
+                UnifiSiteManagerSensor(
+                    coordinator=coordinator,
+                    description=description,
+                    site_id=site_id,
                 )
+            )
 
     async_add_entities(entities)
 
@@ -151,10 +179,19 @@ class UnifiSiteManagerSensor(UnifiSiteManagerSiteEntity, SensorEntity):
     def native_value(self) -> StateType | datetime:
         """Return the state of the sensor."""
         metrics = self.site_metrics
-        if not metrics:
+        if not metrics or not metrics.get("wan"):
             return None
         
-        return self.entity_description.value_fn(metrics)
+        try:
+            return self.entity_description.value_fn(metrics)
+        except Exception as err:
+            _LOGGER.error(
+                "Error getting value for sensor %s: %s. Metrics data: %s",
+                self.entity_description.key,
+                err,
+                metrics
+            )
+            return None
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
@@ -166,13 +203,18 @@ class UnifiSiteManagerSensor(UnifiSiteManagerSiteEntity, SensorEntity):
         metrics_data = metrics.get("wan", {})
         site_data = self.site_data or {}
         
-        return {
+        attrs = {
             ATTR_ISP_NAME: metrics_data.get("ispName"),
             ATTR_DOWNLOAD_SPEED: metrics_data.get("download_kbps"),
             ATTR_UPLOAD_SPEED: metrics_data.get("upload_kbps"),
             ATTR_LATENCY_AVG: metrics_data.get("avgLatency"),
-            ATTR_LATENCY_MAX: metrics_data.get("maxLatency"),
+            ATTR_LATENCY_MAX: metrics_data.get("maxLatency"), 
             ATTR_PACKET_LOSS: metrics_data.get("packetLoss"),
             ATTR_UPTIME: metrics_data.get("uptime"),
-            ATTR_TOTAL_DEVICES: site_data.get("statistics", {}).get("counts", {}).get("totalDevice", 0),
         }
+        
+        # Add total devices only if available in site data
+        if site_data.get("statistics", {}).get("counts", {}).get("totalDevice") is not None:
+            attrs[ATTR_TOTAL_DEVICES] = site_data["statistics"]["counts"]["totalDevice"]
+            
+        return attrs

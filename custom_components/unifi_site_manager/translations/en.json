@@ -1,4 +1,30 @@
 {
+    "config": {
+        "step": {
+            "user": {
+                "description": "Enter your UniFi Site Manager API key. You can obtain this from https://unifi.ui.com.",
+                "data": {
+                    "api_key": "API Key"
+                }
+            },
+            "reauth_confirm": {
+                "description": "The UniFi Site Manager integration needs to re-authenticate your account",
+                "title": "Reauthenticate Integration",
+                "data": {
+                    "api_key": "API Key"
+                }
+            }
+        },
+        "error": {
+            "cannot_connect": "[%key:common::config_flow::error::cannot_connect%]",
+            "invalid_auth": "[%key:common::config_flow::error::invalid_auth%]",
+            "unknown": "[%key:common::config_flow::error::unknown%]"
+        },
+        "abort": {
+            "already_configured": "[%key:common::config_flow::abort::already_configured_device%]",
+            "reauth_successful": "[%key:common::config_flow::abort::reauth_successful%]"
+        }
+    },
     "entity": {
         "sensor": {
             "download_speed": {

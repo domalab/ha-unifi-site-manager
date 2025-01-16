@@ -2,14 +2,17 @@
     "config": {
         "step": {
             "user": {
-                "description": "Set up UniFi Site Manager integration. You'll need an API key from your UniFi account.",
+                "description": "Enter your UniFi Site Manager API key. You can obtain this from https://unifi.ui.com.",
                 "data": {
                     "api_key": "API Key"
                 }
             },
             "reauth_confirm": {
                 "description": "The UniFi Site Manager integration needs to re-authenticate your account",
-                "title": "Reauthenticate Integration"
+                "title": "Reauthenticate Integration",
+                "data": {
+                    "api_key": "API Key"
+                }
             }
         },
         "error": {
@@ -18,7 +21,7 @@
             "unknown": "Unexpected error occurred"
         },
         "abort": {
-            "already_configured": "Device is already configured",
+            "already_configured": "Integration already configured for this API key",
             "reauth_successful": "Re-authentication was successful"
         }
     },

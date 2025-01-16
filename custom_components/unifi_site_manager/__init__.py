@@ -2,11 +2,13 @@
 from __future__ import annotations
 
 import logging
+from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_API_KEY, Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .api import (
     UnifiSiteManagerAPI,
@@ -24,20 +26,20 @@ PLATFORMS: list[Platform] = [
 
 _LOGGER = logging.getLogger(__name__)
 
-
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     """Set up the UniFi Site Manager component."""
-    # Create domain data holder in case multiple instances are created
-    hass.data.setdefault(DOMAIN, {})
-
+    hass.data[DOMAIN] = {}
+    
     # Set up services
     await async_setup_services(hass)
-
+    
     return True
-
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up UniFi Site Manager from a config entry."""
+    # Ensure domain data is initialized
+    hass.data.setdefault(DOMAIN, {})
+    
     try:
         api = UnifiSiteManagerAPI(
             hass=hass,
@@ -62,7 +64,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     )
 
     # Fetch initial data so we have data when entities subscribe
-    await coordinator.async_config_entry_first_refresh()
+    try:
+        await coordinator.async_config_entry_first_refresh()
+    except ConfigEntryNotReady as err:
+        raise ConfigEntryNotReady(f"Failed to load initial data: {err}") from err
 
     # Store coordinator for platforms to access
     hass.data[DOMAIN][entry.entry_id] = coordinator
@@ -78,7 +83,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
-    if unload_ok := await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
+    unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    
+    if unload_ok:
         hass.data[DOMAIN].pop(entry.entry_id)
 
         # If this is the last instance, clean up services

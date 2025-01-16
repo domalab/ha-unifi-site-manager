@@ -164,40 +164,49 @@ class UnifiSiteManagerAPI:
         end_timestamp: datetime | None = None,
         duration: str | None = None,
     ) -> list[dict[str, Any]]:
-        """Get ISP metrics."""
-        params = {}
-        if begin_timestamp:
-            params["beginTimestamp"] = begin_timestamp.isoformat() + "Z"
-        if end_timestamp:
-            params["endTimestamp"] = end_timestamp.isoformat() + "Z"
-        if duration:
-            params["duration"] = duration
-
-        if site_id:
-            # Use query endpoint for specific site
-            data = {
-                "sites": [
-                    {
-                        "siteId": site_id,
-                        **({"beginTimestamp": params.get("beginTimestamp")} if begin_timestamp else {}),
-                        **({"endTimestamp": params.get("endTimestamp")} if end_timestamp else {}),
-                    }
-                ]
-            }
-            response = await self._request(
-                "POST",
-                f"/ea/isp-metrics/{metric_type}/query",
-                json=data,
+        """Get ISP metrics.
+        
+        Args:
+            metric_type: Either '5m' or '1h'
+            site_id: Optional site ID to filter results
+            duration: Time duration ('24h' for 5m metrics, '7d' or '30d' for 1h metrics)
+        """
+        try:
+            # Use duration parameter as documented
+            params = {"duration": "24h" if metric_type == "5m" else "7d"}
+            
+            _LOGGER.debug(
+                "Getting metrics with type=%s, params=%s, site_id=%s",
+                metric_type,
+                params,
+                site_id
             )
-            return response.get("data", {}).get("metrics", [])
-
-        # Use GET endpoint for all sites
-        response = await self._request(
-            "GET",
-            f"/ea/isp-metrics/{metric_type}",
-            params=params,
-        )
-        return response.get("data", [])
+            
+            response = await self._request(
+                "GET",
+                f"/ea/isp-metrics/{metric_type}",
+                params=params,
+            )
+            
+            _LOGGER.debug("Raw API response: %s", response)
+            
+            metrics = response.get("data", [])
+            _LOGGER.debug("Extracted metrics data: %s", metrics)
+            
+            # If we have a site_id, filter the results
+            if site_id:
+                _LOGGER.debug("Filtering metrics for site_id: %s", site_id)
+                metrics = [
+                    metric for metric in metrics 
+                    if metric.get("siteId") == site_id
+                ]
+                
+            _LOGGER.debug("Got %d metrics after filtering", len(metrics))
+            return metrics
+            
+        except UnifiSiteManagerAPIError as err:
+            _LOGGER.error("Error getting metrics: %s", err)
+            return []
 
     async def async_validate_api_key(self) -> bool:
         """Validate API key by making a test request."""

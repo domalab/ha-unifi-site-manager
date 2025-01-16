@@ -1,6 +1,7 @@
 """Base entity for the UniFi Site Manager integration."""
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from homeassistant.core import callback
@@ -11,6 +12,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from .const import DOMAIN, MANUFACTURER
 from .coordinator import UnifiSiteManagerDataUpdateCoordinator
 
+_LOGGER = logging.getLogger(__name__)
 
 class UnifiSiteManagerEntity(CoordinatorEntity[UnifiSiteManagerDataUpdateCoordinator]):
     """Base entity for UniFi Site Manager integration."""
@@ -30,44 +32,20 @@ class UnifiSiteManagerEntity(CoordinatorEntity[UnifiSiteManagerDataUpdateCoordin
         self._site_id = site_id
         self._host_id = host_id
 
-        # Set unique_id based on what type of entity this is
+        # Create a single device identifier for all entities
         if site_id:
-            self._attr_unique_id = f"{site_id}_{description.key}"
             site_data = coordinator.get_site(site_id)
+            _LOGGER.debug("Creating entity for site %s with data: %s", site_id, site_data)
             name = site_data.get("meta", {}).get("name", site_id)
-            stats = site_data.get("statistics", {})
             
+            self._attr_unique_id = f"{site_id}_{description.key}"
             self._attr_device_info = DeviceInfo(
-                identifiers={(DOMAIN, site_id)},
-                name=name,
+                identifiers={(DOMAIN, f"site_{site_id}")},
+                name=f"UniFi Site {name}",
                 manufacturer=MANUFACTURER,
-                model="UniFi Site",
+                model="UniFi Site Manager",
+                sw_version=coordinator.data.get("version"),
                 entry_type=DeviceEntryType.SERVICE,
-                configuration_url=f"https://unifi.ui.com/site/{site_id}",
-                sw_version=stats.get("firmwareVersion"),
-                suggested_area="Network",
-            )
-        elif host_id:
-            self._attr_unique_id = f"{host_id}_{description.key}"
-            host_data = coordinator.get_host(host_id)
-            if not host_data:
-                return
-            
-            name = host_data.get("hostname") or host_data.get("name", host_id)
-            reported_state = host_data.get("reportedState", {})
-            hw_data = reported_state.get("hardware", {})
-            
-            self._attr_device_info = DeviceInfo(
-                identifiers={(DOMAIN, host_id)},
-                name=name,
-                manufacturer=MANUFACTURER,
-                model=hw_data.get("name", "UniFi Device"),
-                hw_version=str(hw_data.get("hwrev", "")),
-                sw_version=hw_data.get("firmwareVersion", ""),
-                serial_number=hw_data.get("serialno", ""),
-                configuration_url=f"https://{reported_state.get('hostname', '')}",
-                suggested_area="Network",
-                via_device=(DOMAIN, host_data.get("parentId")) if host_data.get("parentId") else None,
             )
 
     @callback
@@ -108,10 +86,23 @@ class UnifiSiteManagerEntity(CoordinatorEntity[UnifiSiteManagerDataUpdateCoordin
         """Get site metrics."""
         if not self._site_id:
             return None
+                
         metrics = self.coordinator.get_site_metrics(self._site_id)
-        if not metrics or not metrics[0].get("data"):
+        if not metrics or not isinstance(metrics, list) or not metrics:
             return None
-        return metrics[0]["data"]
+                
+        # Get first metric set
+        metric_set = metrics[0]  # Get first metric result
+        if not metric_set.get("periods"):
+            return None
+                
+        periods = metric_set["periods"]
+        if not periods:
+            return None
+                
+        # Get most recent period data
+        latest_period = periods[0]
+        return latest_period.get("data", {})
 
 
 class UnifiSiteManagerSiteEntity(UnifiSiteManagerEntity):

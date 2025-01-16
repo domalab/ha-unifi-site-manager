@@ -166,7 +166,30 @@ class UnifiSiteManagerDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]
     def get_site(self, site_id: str) -> dict[str, Any] | None:
         """Get site data by ID."""
         return self.data.get("sites", {}).get(site_id)
+    
+    def get_site_metrics(self, site_id: str) -> list[dict[str, Any]]:
+        """Return the stored metrics list for a given site, if available."""
+        return self.data["metrics"].get(site_id, [])
 
-    def get_site_metrics(self, site_id: str) -> dict[str, Any] | None:
-        """Get metrics data for a site."""
-        return self.data.get("metrics", {}).get(site_id)
+    @property
+    def site_metrics(self) -> dict[str, Any] | None:
+        """Get site metrics."""
+        if not self._site_id:
+            return None
+                
+        metrics = self.coordinator.get_site_metrics(self._site_id)
+        if not metrics or not isinstance(metrics, list) or not metrics:
+            return None
+
+        # Get first metric set
+        metric_set = metrics[0]
+        if not metric_set.get("periods"):
+            return None
+                
+        # Get the most recent period's data
+        periods = metric_set["periods"]
+        if not periods:
+            return None
+
+        latest_period = periods[0]
+        return latest_period.get("data", {})

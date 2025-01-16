@@ -117,3 +117,20 @@ UNIT_KBPS: Final = "kbps"
 UNIT_MBPS: Final = "Mbps"
 UNIT_MS: Final = "ms"
 UNIT_PERCENTAGE: Final = "%"
+
+# Configuration
+CONF_SCAN_INTERVAL = "scan_interval"
+CONF_CACHE_TTL = "cache_ttl"
+CONF_METRICS_INTERVAL = "metrics_interval"
+
+# Defaults
+DEFAULT_SCAN_INTERVAL = 60  # seconds
+DEFAULT_CACHE_TTL = 300  # seconds
+DEFAULT_METRICS_INTERVAL = 300  # seconds
+
+# Services
+SERVICE_REFRESH = "refresh"
+SERVICE_CLEAR_CACHE = "clear_cache"
+SERVICE_RESET_ERRORS = "reset_errors"
+SERVICE_UPDATE_SITE = "update_site"
+SERVICE_REBOOT_DEVICE = "reboot_device"
