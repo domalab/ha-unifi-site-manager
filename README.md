@@ -22,12 +22,7 @@ A Home Assistant integration for UniFi's Site Manager API, providing comprehensi
 
 ### HACS (Recommended)
 
-1. Open HACS in Home Assistant
-2. Click on "Integrations"
-3. Click the "+" button
-4. Search for "UniFi Site Manager"
-5. Click "Install"
-6. Restart Home Assistant
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=domalab&repository=ha-unifi-site-manager&category=integration)
 
 ### Manual Installation
 
