@@ -30,9 +30,30 @@
             "download_speed": {
                 "name": "Download Speed",
                 "state_attributes": {
-                    "isp_name": "ISP Name",
-                    "download_speed": "Raw Download Speed (kbps)",
-                    "upload_speed": "Raw Upload Speed (kbps)"
+                    "isp_name": {
+                        "name": "ISP Name"
+                    },
+                    "download_speed": {
+                        "name": "Raw Download Speed (kbps)"
+                    },
+                    "upload_speed": {
+                        "name": "Raw Upload Speed (kbps)"
+                    },
+                    "latency_avg": {
+                        "name": "Average Latency"
+                    },
+                    "latency_max": {
+                        "name": "Maximum Latency"
+                    },
+                    "packet_loss": {
+                        "name": "Packet Loss"
+                    },
+                    "uptime": {
+                        "name": "WAN Uptime"
+                    },
+                    "total_devices": {
+                        "name": "Total Devices"
+                    }
                 }
             },
             "upload_speed": {
