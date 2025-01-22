@@ -49,15 +49,17 @@ class UnifiSiteManagerDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]
         self.api = api
         self.config_entry = entry
         self._available = True
-        self.data = {
+        self.data: dict[str, Any] = {
             "sites": {},
             "hosts": {},
             "metrics": {},
+            "devices": {}, 
             "last_update": None,
         }
         self._metric_update_lock = asyncio.Lock()
         self._site_update_lock = asyncio.Lock()
         self._host_update_lock = asyncio.Lock()
+        self._device_update_lock = asyncio.Lock()
 
     async def _async_update_sites(self) -> None:
         """Update sites data."""
@@ -83,6 +85,31 @@ class UnifiSiteManagerDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]
             except UnifiSiteManagerAPIError as err:
                 self._available = False
                 raise UpdateFailed(f"Error updating hosts: {err}") from err
+
+    async def _async_update_devices(self) -> None:
+        """Update devices data."""
+        async with self._device_update_lock:
+            try:
+                # Get list of host IDs to query
+                host_ids = list(self.data["hosts"].keys())
+                
+                devices_data = await self.api.async_get_devices(host_ids=host_ids)
+                
+                # Process and organize device data by host
+                devices = {}
+                for device_group in devices_data:
+                    # Each device group contains devices for a specific host
+                    for device in device_group.get("devices", []):
+                        device_id = device.get("mac")  # Use MAC as unique identifier
+                        if device_id:
+                            devices[device_id] = device
+                
+                self.data["devices"] = devices
+                _LOGGER.debug("Updated %s devices", len(devices))
+                
+            except Exception as err:
+                self._available = False
+                raise UpdateFailed(f"Error updating devices: {err}") from err
 
     async def _async_update_metrics(self) -> None:
         """Update ISP metrics data."""
@@ -134,11 +161,12 @@ class UnifiSiteManagerDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]
             # Update hosts and metrics concurrently
             await asyncio.gather(
                 self._async_update_hosts(),
+                self._async_update_devices(),
                 self._async_update_metrics(),
             )
 
             self._available = True
-            self.data["last_update"] = datetime.utcnow()
+            self.data["last_update"] = datetime.now(timezone.utc)
             return self.data
 
         except UnifiSiteManagerConnectionError as err:
@@ -166,9 +194,26 @@ class UnifiSiteManagerDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]
     def get_site(self, site_id: str) -> dict[str, Any] | None:
         """Get site data by ID."""
         return self.data.get("sites", {}).get(site_id)
-    
+
+    def get_device(self, device_id: str) -> dict[str, Any] | None:
+        """Get device data by ID (MAC address)."""
+        return self.data.get("devices", {}).get(device_id)
+
+    def validate_site_data(self, site_id: str) -> bool:
+        """Validate site data exists and has required fields."""
+        if not self.data.get("sites"):
+            return False
+        site_data = self.data["sites"].get(site_id)
+        if not site_data:
+            return False
+        required_fields = ["meta", "statistics"]
+        return all(field in site_data for field in required_fields)
+
     def get_site_metrics(self, site_id: str) -> list[dict[str, Any]]:
-        """Return the stored metrics list for a given site, if available."""
+        """Return the stored metrics list for a given site with validation."""
+        if not self.validate_site_data(site_id):
+            _LOGGER.warning("Invalid site_id or missing site data: %s", site_id)
+            return []
         return self.data["metrics"].get(site_id, [])
 
     @property

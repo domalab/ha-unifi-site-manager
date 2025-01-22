@@ -45,13 +45,16 @@ class UnifiSiteManagerAPI:
         api_key: str,
         host: str = DEFAULT_API_HOST,
         session: ClientSession | None = None,
+        rate_limit: int = 100,
+        timeout: int = 10,
     ) -> None:
         """Initialize the API client."""
         self._hass = hass
         self._api_key = api_key
         self._host = host
         self._session = session or async_get_clientsession(hass)
-        self._rate_limit_remaining = 100  # Default rate limit
+        self._rate_limit_remaining = rate_limit
+        self._request_timeout = timeout
         self._rate_limit_reset: datetime | None = None
         self._request_lock = asyncio.Lock()
 
@@ -81,7 +84,7 @@ class UnifiSiteManagerAPI:
         endpoint: str,
         **kwargs: Any,
     ) -> dict[str, Any]:
-        """Make an API request."""
+        """Make an API request with improved error handling."""
         async with self._request_lock:
             await self._handle_rate_limit()
 
@@ -96,7 +99,7 @@ class UnifiSiteManagerAPI:
             url = f"{self._host}{endpoint}"
 
             try:
-                async with async_timeout.timeout(10):
+                async with async_timeout.timeout(self._request_timeout):
                     async with self._session.request(
                         method,
                         url,
@@ -105,26 +108,24 @@ class UnifiSiteManagerAPI:
                     ) as resp:
                         self._update_rate_limit(resp)
 
+                        # Enhanced error handling
                         if resp.status == 401:
                             raise ConfigEntryAuthFailed("Invalid API key")
-                        
-                        if resp.status == 429:
+                        elif resp.status == 429:
                             retry_after = int(resp.headers.get("Retry-After", 60))
+                            _LOGGER.warning(
+                                "Rate limit exceeded. Need to wait %s seconds",
+                                retry_after
+                            )
                             raise UnifiSiteManagerRateLimitError(
                                 f"Rate limit exceeded, retry after {retry_after} seconds"
                             )
-                        
-                        if resp.status == 503:
-                            raise UnifiSiteManagerServerError(
-                                "UniFi Site Manager service is unavailable"
+                        elif resp.status >= 500:
+                            _LOGGER.error(
+                                "Server error %s: %s", 
+                                resp.status,
+                                await resp.text()
                             )
-                        
-                        if resp.status == 504:
-                            raise UnifiSiteManagerGatewayError(
-                                "UniFi Site Manager gateway timeout"
-                            )
-                        
-                        if 500 <= resp.status < 600:
                             raise UnifiSiteManagerServerError(
                                 f"Server error: {resp.status}"
                             )
@@ -133,18 +134,34 @@ class UnifiSiteManagerAPI:
                         return await resp.json()
 
             except asyncio.TimeoutError as err:
+                _LOGGER.error("Timeout requesting data from %s: %s", url, str(err))
                 raise UnifiSiteManagerConnectionError(
                     f"Timeout error requesting data from {url}"
-                ) from err
-            except ClientError as err:
-                raise UnifiSiteManagerConnectionError(
-                    f"Error requesting data from {url}: {str(err)}"
                 ) from err
 
     async def async_get_sites(self) -> list[dict[str, Any]]:
         """Get all sites."""
         response = await self._request("GET", "/ea/sites")
         return response.get("data", [])
+
+    async def async_get_devices(
+        self,
+        host_ids: list[str] | None = None,
+        time: datetime | None = None,
+    ) -> list[dict[str, Any]]:
+        """Get all devices managed by hosts."""
+        params = {}
+        if host_ids:
+            params["hostIds[]"] = host_ids
+        if time:
+            params["time"] = time.isoformat()
+        
+        try:
+            response = await self._request("GET", "/ea/devices", params=params)
+            return response.get("data", [])
+        except Exception as err:
+            _LOGGER.error("Error getting devices data: %s", err)
+            return []
 
     async def async_get_hosts(self) -> list[dict[str, Any]]:
         """Get all hosts."""

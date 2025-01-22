@@ -19,15 +19,13 @@ from .const import (
     ICON_NETWORK,
     ICON_PROTECT,
 )
-from .entity import UnifiSiteManagerHostEntity, UnifiSiteManagerSiteEntity
-
+from .entity import UnifiSiteManagerHostEntity, UnifiSiteManagerSiteEntity, UnifiSiteManagerDeviceEntity
 
 @dataclass(frozen=True, kw_only=True)
 class UnifiBinarySensorEntityDescription(BinarySensorEntityDescription):
     """Class describing UniFi binary sensor entities."""
 
     is_on_fn: Callable[[dict[str, Any]], bool | None]
-
 
 SITE_BINARY_SENSORS: Final[tuple[UnifiBinarySensorEntityDescription, ...]] = (
     UnifiBinarySensorEntityDescription(
@@ -86,6 +84,29 @@ HOST_BINARY_SENSORS: Final[tuple[UnifiBinarySensorEntityDescription, ...]] = (
     ),
 )
 
+DEVICE_BINARY_SENSORS: Final[tuple[UnifiBinarySensorEntityDescription, ...]] = (
+    UnifiBinarySensorEntityDescription(
+        key="device_online",
+        translation_key="device_online",
+        device_class=BinarySensorDeviceClass.CONNECTIVITY,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        is_on_fn=lambda data: data.get("status") == "online",
+    ),
+    UnifiBinarySensorEntityDescription(
+        key="device_managed",
+        translation_key="device_managed",
+        device_class=BinarySensorDeviceClass.CONNECTIVITY,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        is_on_fn=lambda data: data.get("isManaged", False),
+    ),
+    UnifiBinarySensorEntityDescription(
+        key="firmware_up_to_date",
+        translation_key="firmware_up_to_date",
+        device_class=BinarySensorDeviceClass.UPDATE,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        is_on_fn=lambda data: data.get("firmwareStatus") == "upToDate",
+    ),
+)
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -95,7 +116,11 @@ async def async_setup_entry(
     """Set up the UniFi Site Manager binary sensors."""
     coordinator = hass.data[DOMAIN][config_entry.entry_id]
 
-    entities: list[UnifiSiteManagerBinarySensor | UnifiSiteManagerHostBinarySensor] = []
+    entities: list[
+        UnifiSiteManagerBinarySensor 
+        | UnifiSiteManagerHostBinarySensor 
+        | UnifiSiteManagerDeviceBinarySensor
+    ] = []
 
     # Add site-level binary sensors
     for site_id in coordinator.data["sites"]:
@@ -120,6 +145,17 @@ async def async_setup_entry(
                 for description in HOST_BINARY_SENSORS
             )
 
+    # Add device-level binary sensors
+    for device_id, device_data in coordinator.data.get("devices", {}).items():
+        entities.extend(
+            UnifiSiteManagerDeviceBinarySensor(
+                coordinator=coordinator,
+                description=description,
+                device_id=device_id,
+            )
+            for description in DEVICE_BINARY_SENSORS
+        )
+
     async_add_entities(entities)
 
 
@@ -140,7 +176,6 @@ class UnifiSiteManagerBinarySensor(UnifiSiteManagerSiteEntity, BinarySensorEntit
         """Return if entity is available."""
         # Only check coordinator availability for site binary sensors
         return self.coordinator.last_update_success
-
 
 class UnifiSiteManagerHostBinarySensor(UnifiSiteManagerHostEntity, BinarySensorEntity):
     """Representation of a UniFi Site Manager Host Binary Sensor."""
@@ -163,4 +198,24 @@ class UnifiSiteManagerHostBinarySensor(UnifiSiteManagerHostEntity, BinarySensorE
         return (
             self.coordinator.last_update_success
             and self.host_data.get("reportedState", {}).get("state") == "connected"
+        )
+    
+class UnifiSiteManagerDeviceBinarySensor(UnifiSiteManagerDeviceEntity, BinarySensorEntity):
+    """Representation of a UniFi Site Manager Device Binary Sensor."""
+
+    entity_description: UnifiBinarySensorEntityDescription
+
+    @property
+    def is_on(self) -> bool | None:
+        """Return true if the binary sensor is on."""
+        if not self.device_data:
+            return None
+        return self.entity_description.is_on_fn(self.device_data)
+
+    @property
+    def available(self) -> bool:
+        """Return if entity is available."""
+        return (
+            self.coordinator.last_update_success
+            and self.device_data is not None
         )

@@ -9,6 +9,15 @@ MANUFACTURER: Final = "Ubiquiti Inc."
 DEFAULT_API_HOST: Final = "https://api.ui.com"
 DEFAULT_SCAN_INTERVAL: Final = timedelta(minutes=1)
 
+# API configurations
+DEFAULT_REQUEST_TIMEOUT: Final = 10
+DEFAULT_RATE_LIMIT: Final = 100
+MIN_SCAN_INTERVAL: Final = 30  # seconds
+MAX_SCAN_INTERVAL: Final = 3600  # 1 hour
+
+API_RETRIES: Final = 3
+API_RETRY_DELAY: Final = 1.0  # seconds
+
 # Entry Config
 CONF_API_KEY: Final = "api_key"
 CONF_SITE_ID: Final = "site_id"
@@ -39,6 +48,11 @@ ATTR_SITE_NAME: Final = "site_name"
 ATTR_HOST_ID: Final = "host_id"
 ATTR_TYPE: Final = "type"
 ATTR_RELEASE_CHANNEL: Final = "release_channel"
+DEVICE_ATTR_UPTIME = "uptime"
+DEVICE_ATTR_ADOPTION_TIME = "adoption_time"
+DEVICE_ATTR_STARTUP_TIME = "startup_time"
+ATTR_LAST_UPDATED: Final = "last_updated"
+ATTR_API_VERSION: Final = "api_version"
 
 # ISP Metrics
 ATTR_ISP_NAME: Final = "isp_name"
@@ -56,6 +70,8 @@ ATTR_OFFLINE_DEVICES: Final = "offline_devices"
 ATTR_WIFI_CLIENTS: Final = "wifi_clients"
 ATTR_WIRED_CLIENTS: Final = "wired_clients"
 ATTR_GUEST_CLIENTS: Final = "guest_clients"
+ATTR_TX_RETRY: Final = "tx_retry"
+ATTR_IPS_RULES: Final = "ips_rules"
 
 # Controller Types
 CONTROLLER_TYPE_NETWORK: Final = "network"
@@ -73,6 +89,10 @@ CONTROLLER_STATE_INACTIVE: Final = "inactive"
 ERROR_AUTH_INVALID: Final = "invalid_auth"
 ERROR_CANNOT_CONNECT: Final = "cannot_connect"
 ERROR_UNKNOWN: Final = "unknown"
+ERROR_TIMEOUT: Final = "timeout"
+ERROR_RATE_LIMIT: Final = "rate_limit"
+ERROR_SERVER: Final = "server_error"
+ERROR_INVALID_RESPONSE: Final = "invalid_response"
 
 # Service Names
 SERVICE_REFRESH: Final = "refresh"
@@ -91,6 +111,14 @@ ICON_SPEED_TEST: Final = "mdi:speedometer"
 ICON_LATENCY: Final = "mdi:timer-outline"
 ICON_PACKET_LOSS: Final = "mdi:connection"
 ICON_UPTIME: Final = "mdi:clock-outline"
+ICON_WIFI_CLIENTS = "mdi:wifi-marker"
+ICON_WIRED_CLIENTS = "mdi:ethernet"
+ICON_GUEST_CLIENTS = "mdi:account-group"
+ICON_IPS = "mdi:shield"
+ICON_TX_RETRY = "mdi:wifi-sync"
+ICON_DEVICE = "mdi:devices"
+ICON_ADOPTION = "mdi:account-clock"
+ICON_STARTUP = "mdi:clock-start"
 
 # Metric Types
 METRIC_TYPE_5M: Final = "5m"

@@ -73,6 +73,24 @@
             },
             "total_devices": {
                 "name": "Total Devices"
+            },
+            "firmware_version": {
+                "name": "Firmware Version"
+            },
+            "model": {
+                "name": "Model"
+            },
+            "ip_address": {
+                "name": "IP Address"
+            },
+            "product_line": {
+                "name": "Product Line"
+            },
+            "adoption_time": {
+                "name": "Adoption Time"
+            },
+            "startup_time": {
+                "name": "Startup Time"
             }
         },
         "binary_sensor": {
@@ -116,6 +134,27 @@
                 "state": {
                     "on": "Active",
                     "off": "Inactive"
+                }
+            },
+            "device_online": {
+                "name": "Device Status",
+                "state": {
+                    "on": "Online",
+                    "off": "Offline"
+                }
+            },
+            "device_managed": {
+                "name": "Device Management",
+                "state": {
+                    "on": "Managed",
+                    "off": "Unmanaged"
+                }
+            },
+            "firmware_up_to_date": {
+                "name": "Firmware Status",
+                "state": {
+                    "on": "Up to Date",
+                    "off": "Update Available"
                 }
             }
         }

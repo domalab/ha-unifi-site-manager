@@ -25,12 +25,14 @@ class UnifiSiteManagerEntity(CoordinatorEntity[UnifiSiteManagerDataUpdateCoordin
         description: EntityDescription,
         site_id: str | None = None,
         host_id: str | None = None,
+        device_id: str | None = None,  # Add device_id parameter
     ) -> None:
         """Initialize the entity."""
         super().__init__(coordinator)
         self.entity_description = description
         self._site_id = site_id
         self._host_id = host_id
+        self._device_id = device_id  # Store device_id
 
         # Create a single device identifier for all entities
         if site_id:
@@ -47,6 +49,22 @@ class UnifiSiteManagerEntity(CoordinatorEntity[UnifiSiteManagerDataUpdateCoordin
                 sw_version=coordinator.data.get("version"),
                 entry_type=DeviceEntryType.SERVICE,
             )
+        # Add device info creation for device entities
+        elif device_id:
+            device_data = coordinator.get_device(device_id)
+            _LOGGER.debug("Creating entity for device %s with data: %s", device_id, device_data)
+            
+            self._attr_unique_id = f"{device_id}_{description.key}"
+            self._attr_device_info = DeviceInfo(
+                identifiers={(DOMAIN, f"device_{device_id}")},
+                name=device_data.get("name", device_id),
+                manufacturer=MANUFACTURER,
+                model=device_data.get("model", "Unknown"),
+                sw_version=device_data.get("version"),
+                hw_version=device_data.get("hardwareVersion"),
+                suggested_area=device_data.get("location"),
+                entry_type=DeviceEntryType.SERVICE,
+            )
 
     @callback
     def _handle_coordinator_update(self) -> None:
@@ -60,6 +78,12 @@ class UnifiSiteManagerEntity(CoordinatorEntity[UnifiSiteManagerDataUpdateCoordin
         elif self._host_id:
             host_data = self.coordinator.get_host(self._host_id)
             if not host_data:
+                self._attr_available = False
+                self.async_write_ha_state()
+                return
+        elif self._device_id:  # Add device data check
+            device_data = self.coordinator.get_device(self._device_id)
+            if not device_data:
                 self._attr_available = False
                 self.async_write_ha_state()
                 return
@@ -80,6 +104,13 @@ class UnifiSiteManagerEntity(CoordinatorEntity[UnifiSiteManagerDataUpdateCoordin
         if not self._host_id:
             return None
         return self.coordinator.get_host(self._host_id)
+
+    @property
+    def device_data(self) -> dict[str, Any] | None:
+        """Get device data."""
+        if not self._device_id:
+            return None
+        return self.coordinator.get_device(self._device_id)
 
     @property
     def site_metrics(self) -> dict[str, Any] | None:
@@ -129,3 +160,16 @@ class UnifiSiteManagerHostEntity(UnifiSiteManagerEntity):
     ) -> None:
         """Initialize the host entity."""
         super().__init__(coordinator, description, host_id=host_id)
+
+
+class UnifiSiteManagerDeviceEntity(UnifiSiteManagerEntity):
+    """Base entity for UniFi Site Manager device entities."""
+
+    def __init__(
+        self,
+        coordinator: UnifiSiteManagerDataUpdateCoordinator,
+        description: EntityDescription,
+        device_id: str,
+    ) -> None:
+        """Initialize the device entity."""
+        super().__init__(coordinator, description, device_id=device_id)

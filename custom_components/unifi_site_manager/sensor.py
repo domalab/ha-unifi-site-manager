@@ -5,6 +5,7 @@ import logging
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime
+import dateutil.parser
 from typing import Any, Final
 
 from homeassistant.components.sensor import (
@@ -35,15 +36,18 @@ from .const import (
     ATTR_UPLOAD_SPEED,
     ATTR_UPTIME,
     DOMAIN,
+    ICON_ADOPTION,
     ICON_CLIENTS,
+    ICON_DEVICE,
     ICON_LATENCY,
     ICON_PACKET_LOSS,
     ICON_SPEED_TEST,
+    ICON_STARTUP,
     ICON_UPTIME,
     KBPS_TO_MBPS,
     STATE_CLASS_MEASUREMENT,
 )
-from .entity import UnifiSiteManagerSiteEntity
+from .entity import UnifiSiteManagerSiteEntity, UnifiSiteManagerDeviceEntity
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -52,7 +56,6 @@ class UnifiSensorEntityDescription(SensorEntityDescription):
     """Class describing UniFi sensor entities."""
 
     value_fn: Callable[[dict[str, Any]], StateType | datetime]
-
 
 SITE_SENSORS: Final[tuple[UnifiSensorEntityDescription, ...]] = (
     UnifiSensorEntityDescription(
@@ -117,6 +120,60 @@ SITE_SENSORS: Final[tuple[UnifiSensorEntityDescription, ...]] = (
     ),
 )
 
+DEVICE_SENSORS: Final[tuple[UnifiSensorEntityDescription, ...]] = (
+    UnifiSensorEntityDescription(
+        key="firmware_version",
+        translation_key="firmware_version",
+        icon="mdi:text-box-check",
+        entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=lambda data: data.get("version"),
+    ),
+    UnifiSensorEntityDescription(
+        key="ip_address",
+        translation_key="ip_address",
+        icon="mdi:ip-network",
+        entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=lambda data: data.get("ip"),
+    ),
+    UnifiSensorEntityDescription(
+        key="model",
+        translation_key="model",
+        icon=ICON_DEVICE,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=lambda data: data.get("model"),
+    ),
+    UnifiSensorEntityDescription(
+        key="product_line",
+        translation_key="product_line",
+        icon=ICON_DEVICE,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=lambda data: data.get("productLine"),
+    ),
+    UnifiSensorEntityDescription(
+        key="adoption_time",
+        translation_key="adoption_time",
+        icon=ICON_ADOPTION,
+        device_class=SensorDeviceClass.TIMESTAMP,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=lambda data: (
+            dateutil.parser.parse(data["adoptionTime"])
+            if data.get("adoptionTime")
+            else None
+        ),
+    ),
+    UnifiSensorEntityDescription(
+        key="startup_time",
+        translation_key="startup_time",
+        icon=ICON_STARTUP,
+        device_class=SensorDeviceClass.TIMESTAMP,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=lambda data: (
+            dateutil.parser.parse(data["startupTime"])
+            if data.get("startupTime")
+            else None
+        ),
+    ),
+)
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -128,7 +185,7 @@ async def async_setup_entry(
     
     _LOGGER.debug("Setting up sensors with sites data: %s", coordinator.data["sites"])
     
-    entities: list[UnifiSiteManagerSensor] = []
+    entities: list[UnifiSiteManagerSensor | UnifiSiteManagerDeviceSensor] = []
 
     # Add site-level sensors
     for site_id, site_data in coordinator.data["sites"].items():
@@ -167,8 +224,19 @@ async def async_setup_entry(
                 )
             )
 
-    async_add_entities(entities)
+    # Add device-level sensors
+    for device_id, device_data in coordinator.data.get("devices", {}).items():
+        _LOGGER.debug("Creating sensors for device %s", device_id)
+        entities.extend(
+            UnifiSiteManagerDeviceSensor(
+                coordinator=coordinator,
+                description=description,
+                device_id=device_id,
+            )
+            for description in DEVICE_SENSORS
+        )
 
+    async_add_entities(entities)
 
 class UnifiSiteManagerSensor(UnifiSiteManagerSiteEntity, SensorEntity):
     """Representation of a UniFi Site Manager Sensor."""
@@ -177,9 +245,17 @@ class UnifiSiteManagerSensor(UnifiSiteManagerSiteEntity, SensorEntity):
 
     @property
     def native_value(self) -> StateType | datetime:
-        """Return the state of the sensor."""
+        """Return the state of the sensor with validation."""
         metrics = self.site_metrics
-        if not metrics or not metrics.get("wan"):
+        if not metrics:
+            return None
+        
+        wan_data = metrics.get("wan", {})
+        if not wan_data:
+            _LOGGER.debug(
+                "No WAN data available for sensor %s", 
+                self.entity_description.key
+            )
             return None
         
         try:
@@ -218,3 +294,25 @@ class UnifiSiteManagerSensor(UnifiSiteManagerSiteEntity, SensorEntity):
             attrs[ATTR_TOTAL_DEVICES] = site_data["statistics"]["counts"]["totalDevice"]
             
         return attrs
+    
+class UnifiSiteManagerDeviceSensor(UnifiSiteManagerDeviceEntity, SensorEntity):
+    """Representation of a UniFi Site Manager Device Sensor."""
+
+    entity_description: UnifiSensorEntityDescription
+
+    @property
+    def native_value(self) -> StateType | datetime:
+        """Return the state of the sensor."""
+        if not self.device_data:
+            return None
+        
+        try:
+            return self.entity_description.value_fn(self.device_data)
+        except Exception as err:
+            _LOGGER.error(
+                "Error getting value for device sensor %s: %s. Device data: %s",
+                self.entity_description.key,
+                err,
+                self.device_data
+            )
+            return None
